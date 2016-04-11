@@ -42,7 +42,18 @@ public class MainActivity extends AppCompatActivity {
                 return img.length;
             }
         });
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
         imageSwitch.start(2000);
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        imageSwitch.stop();
     }
 
     @Override

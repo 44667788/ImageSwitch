@@ -55,6 +55,7 @@ public class ImageSwitch extends FrameLayout {
     }
     private void init(){
         childs=new View[3];
+        curentPosition=0;
     }
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
@@ -105,11 +106,12 @@ public class ImageSwitch extends FrameLayout {
             child=mLoadNext.createItem();
             childs[2]=child;
             addView(child);
-            curentPosition=0;
-            mLoadNext.bindData(childs[1],0);
+            mLoadNext.bindData(childs[1],curentPosition);
             //pre load the next item
             if(mLoadNext.getCount()>1){
-                mLoadNext.bindData(childs[2],1);
+                int np=curentPosition+1;
+                np=np%mLoadNext.getCount();
+                mLoadNext.bindData(childs[2],np);
             }
         }
     }
