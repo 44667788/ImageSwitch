@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<instant-run
+    abi="x86"
+    api-level="19"
+    density="xxhdpi"
+    format="7"
+    timestamp="26820126324872" >
+
+    <task
+        name="javac"
+        duration="75" />
+    <task
+        name="instant-run-dex"
+        duration="0" />
+    <task
+        name="instant-run-transform"
+        duration="20" />
+    <task
+        name="verifier"
+        duration="4" />
+
+    <artifact
+        location="/home/chikuilee/project/ImageSwicher/app/build/outputs/apk/app-debug.apk"
+        type="MAIN" />
+
+    <build timestamp="26820126324872" >
+        <artifact
+            location="/home/chikuilee/project/ImageSwicher/app/build/outputs/apk/app-debug.apk"
+            type="MAIN" />
+    </build>
+
+</instant-run>
