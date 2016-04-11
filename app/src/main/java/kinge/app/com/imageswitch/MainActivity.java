@@ -20,7 +20,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         imageSwitch=(ImageSwitch) findViewById(R.id.image);
-        imageSwitch.setLoadNext(new ImageSwitch.LoadNext() {
+        imageSwitch.setLoadNext(new ImageSwitch.Adapter() {
             @Override
             public View createItem() {
                 SimpleDraweeView view=new SimpleDraweeView(MainActivity.this);

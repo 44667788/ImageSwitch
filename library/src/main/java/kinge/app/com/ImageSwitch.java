@@ -25,7 +25,7 @@ public class ImageSwitch extends FrameLayout {
     // Timer use to control how long to change the item
     private Timer mTimer;
     private Handler mHandler;
-    private LoadNext mLoadNext;
+    private Adapter mLoadNext;
     private View childs[];
     private int animationDuration=500;
     private int l,t,r,b;
@@ -113,7 +113,15 @@ public class ImageSwitch extends FrameLayout {
             }
         }
     }
-    public void setLoadNext(LoadNext loadNext){
+    // stop the task
+    public void stop(){
+        if(mTimer!=null){
+            mTimer.cancel();
+            mTimer.purge();
+            mTimer=null;
+        }
+    }
+    public void setLoadNext(Adapter loadNext){
         this.mLoadNext=loadNext;
     }
     // set the duration for exchange animation
@@ -144,11 +152,10 @@ public class ImageSwitch extends FrameLayout {
 
             @Override
             public void onAnimationEnd(Animator animation) {
-                System.out.println("\n\n");
                 System.out.println("*************** after *************");
                 System.out.println(childs[1].hashCode()+": left "+childs[1].getLeft()+" right "+childs[1].getRight()+" tx "+childs[1].getTranslationX());
                 System.out.println(childs[2].hashCode()+": left "+childs[2].getLeft()+" right "+childs[2].getRight()+" tx "+childs[2].getTranslationX());
-                System.out.println("$$$$$$$$$$$$$$$$ after *************\n\n\n");
+                System.out.println("$$$$$$$$$$$$$$$$ after $$$$$$$$$$$$$$");
                 reLayoutRight();
 
                 ++curentPosition;
@@ -170,6 +177,11 @@ public class ImageSwitch extends FrameLayout {
         });
         occurAnimator.start();
     }
+
+    /**
+     *  if you swipe from right to left
+     *  then move the item in the childs array
+     */
     private void reLayoutRight(){
         View temp=childs[0];
         childs[0]=childs[1];
@@ -179,6 +191,10 @@ public class ImageSwitch extends FrameLayout {
         childs[0].setAlpha(1);
        reLayout();
     }
+    /*
+    * if you swipe for left to right
+    * them move the item  in childs array
+    * */
     private void reLayoutLeft(){
         View temp=childs[2];
         childs[2]=childs[1];
@@ -186,6 +202,9 @@ public class ImageSwitch extends FrameLayout {
         childs[0]=temp;
         reLayout();
     }
+    /*
+    * relayout the child in childs array
+    * */
     private void reLayout(){
         childs[0].layout(-width,t,0,b);
         childs[0].setTranslationX(0);
@@ -194,6 +213,9 @@ public class ImageSwitch extends FrameLayout {
         childs[2].layout(getWidth(),t,getWidth()+width,b);
         childs[2].setTranslationX(0);
     }
+    /*
+    * override the onToucheEvent method to move the child ,when you swipe in this view
+    * */
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         if(isAniamtion){
@@ -211,6 +233,7 @@ public class ImageSwitch extends FrameLayout {
                 isTouching=true;
                 break;
             case MotionEvent.ACTION_MOVE:
+                isTouching=true;
                 float dx=event.getX()-x;
                 float dy=event.getY()-y;
                 if(Math.abs(dx)>Math.abs(dy)){
@@ -232,7 +255,7 @@ public class ImageSwitch extends FrameLayout {
 
                 float upx=event.getX();
                 dx=upx-downX;
-                if(Math.abs(dx)>width/2){
+                if(Math.abs(dx)>width/4){
                     int w=getWidth();
                     if(dx>0&&curentPosition>0){
                         isAniamtion=true;
@@ -254,6 +277,9 @@ public class ImageSwitch extends FrameLayout {
         }
         return dealResult;
     }
+    /*
+    * use the ObjectAnimator to Scroll the child to right position
+    * */
     private void animationScroll(final float w){
         ObjectAnimator animator=ObjectAnimator.ofFloat(childs[0],"translationX",w).setDuration(200);
         animator.start();
@@ -307,9 +333,27 @@ public class ImageSwitch extends FrameLayout {
             }
         }
     }
-    public interface LoadNext{
+    /*
+    * This interface is used to create the child and bindData for the child for ImageSwitch
+    * */
+    public interface Adapter {
+        /*
+        * use to create the item
+        * return : return the item it created
+        * */
         View createItem();
+        /*
+        * bindData for the view
+        * @param
+        * view :target
+        * position: position of the view
+        * */
         void bindData(View view, int position);
+        /*
+        * get the count of child
+        * return :
+        * return the count for the child;
+        * */
         int getCount();
     }
 }
