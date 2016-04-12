@@ -25,7 +25,7 @@ public class ImageSwitch extends FrameLayout {
     // Timer use to control how long to change the item
     private Timer mTimer;
     private Handler mHandler;
-    private Adapter mLoadNext;
+    private Adapter adapter;
     private View childs[];
     private int animationDuration=500;
     private int l,t,r,b;
@@ -90,28 +90,31 @@ public class ImageSwitch extends FrameLayout {
         System.out.println("start ");
         mTimer=new Timer();
         mHandler =new Handler(this);
-        mTimer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                mHandler.sendEmptyMessage(1);
-            }
-        },period,period);
-        if(mLoadNext!=null&&mLoadNext.getCount()>0){
-            View child=mLoadNext.createItem();
+        if(adapter !=null&& adapter.getCount()>0){
+
+            View child= adapter.createItem();
             childs[0]=child;
             addView(child);
-            child=mLoadNext.createItem();
+            child= adapter.createItem();
             childs[1]=child;
             addView(child);
-            child=mLoadNext.createItem();
+            child= adapter.createItem();
             childs[2]=child;
             addView(child);
-            mLoadNext.bindData(childs[1],curentPosition);
+            adapter.bindData(childs[1],curentPosition);
             //pre load the next item
-            if(mLoadNext.getCount()>1){
+            if(adapter.getCount()>1){
                 int np=curentPosition+1;
-                np=np%mLoadNext.getCount();
-                mLoadNext.bindData(childs[2],np);
+                np=np% adapter.getCount();
+                adapter.bindData(childs[2],np);
+                adapter.bindData(childs[0], adapter.getCount()-1);
+                //only the content count bigger than 1 then you need to exchange them
+                mTimer.schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        mHandler.sendEmptyMessage(1);
+                    }
+                },period,period);
             }
         }
     }
@@ -124,7 +127,7 @@ public class ImageSwitch extends FrameLayout {
         }
     }
     public void setLoadNext(Adapter loadNext){
-        this.mLoadNext=loadNext;
+        this.adapter =loadNext;
     }
     // set the duration for exchange animation
     public void setAnimationDuration(int duration){
@@ -135,12 +138,12 @@ public class ImageSwitch extends FrameLayout {
             return;
         }
         isAniamtion=true;
-        System.out.println("################  before #######################");
+//        System.out.println("################  before #######################");
         int translation0=childs[1].getRight();
         int translation1=childs[2].getLeft()-childs[1].getLeft();
-        System.out.println(childs[1].hashCode()+": left "+childs[1].getLeft()+" right "+childs[1].getRight()+" tx "+childs[1].getTranslationX());
-        System.out.println(childs[2].hashCode()+": left "+childs[2].getLeft()+" right "+childs[2].getRight()+" tx "+childs[2].getTranslationX());
-        System.out.println("==================  before =======================");
+//        System.out.println(childs[1].hashCode()+": left "+childs[1].getLeft()+" right "+childs[1].getRight()+" tx "+childs[1].getTranslationX());
+//        System.out.println(childs[2].hashCode()+": left "+childs[2].getLeft()+" right "+childs[2].getRight()+" tx "+childs[2].getTranslationX());
+//        System.out.println("==================  before =======================");
         PropertyValuesHolder translationHolder=PropertyValuesHolder.ofFloat("translationX",-translation0);
         PropertyValuesHolder alphaHolder=PropertyValuesHolder.ofFloat("alpha",0.6f);
         ObjectAnimator dismissAnimator=ObjectAnimator.ofPropertyValuesHolder(childs[1],translationHolder,alphaHolder);
@@ -154,16 +157,20 @@ public class ImageSwitch extends FrameLayout {
 
             @Override
             public void onAnimationEnd(Animator animation) {
-                System.out.println("*************** after *************");
-                System.out.println(childs[1].hashCode()+": left "+childs[1].getLeft()+" right "+childs[1].getRight()+" tx "+childs[1].getTranslationX());
-                System.out.println(childs[2].hashCode()+": left "+childs[2].getLeft()+" right "+childs[2].getRight()+" tx "+childs[2].getTranslationX());
-                System.out.println("$$$$$$$$$$$$$$$$ after $$$$$$$$$$$$$$");
+//                System.out.println("*************** after *************");
+//                System.out.println(childs[1].hashCode()+": left "+childs[1].getLeft()+" right "+childs[1].getRight()+" tx "+childs[1].getTranslationX());
+//                System.out.println(childs[2].hashCode()+": left "+childs[2].getLeft()+" right "+childs[2].getRight()+" tx "+childs[2].getTranslationX());
+//                System.out.println("$$$$$$$$$$$$$$$$ after $$$$$$$$$$$$$$");
                 reLayoutRight();
 
                 ++curentPosition;
-                curentPosition=curentPosition%mLoadNext.getCount();
-                int np=(curentPosition+1)%mLoadNext.getCount();
-                mLoadNext.bindData(childs[2],np);
+                curentPosition=curentPosition% adapter.getCount();
+                adapter.onItemChanged(curentPosition);
+                int np=(curentPosition+1)% adapter.getCount();
+                adapter.bindData(childs[2],np);
+//                np=curentPosition-1;
+//                np=np<0? adapter.getCount()-1:np;
+//                adapter.bindData(childs[0],np);
                 isAniamtion=false;
             }
 
@@ -215,11 +222,17 @@ public class ImageSwitch extends FrameLayout {
         childs[2].layout(getWidth(),t,getWidth()+width,b);
         childs[2].setTranslationX(0);
     }
-    /*
-    * override the onToucheEvent method to move the child ,when you swipe in this view
-    * */
+
     @Override
-    public boolean onTouchEvent(MotionEvent event) {
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+        handleMotionEvent(ev);
+        return super.dispatchTouchEvent(ev);
+    }
+
+    /*
+        * override the onToucheEvent method to move the child ,when you swipe in this view
+        * */
+    public boolean handleMotionEvent(MotionEvent event) {
         if(isAniamtion){
             return true;
         }
@@ -238,35 +251,42 @@ public class ImageSwitch extends FrameLayout {
                 isTouching=true;
                 float dx=event.getX()-x;
                 float dy=event.getY()-y;
-                if(Math.abs(dx)>Math.abs(dy)){
-                    if(dx>0&&curentPosition>0){
+                if(Math.abs(dx)>Math.abs(dy)&& adapter !=null&& adapter.getCount()>1){
+                    if(dx>0){
                         dealResult=true;
                         for(int i=0;i<3;++i){
                             childs[i].setTranslationX(dx);
                         }
                     }
-                    if(dx<0&&curentPosition<mLoadNext.getCount()-1){
+                    if(dx<0){
                         dealResult=true;
                         for(int i=0;i<3;++i){
                             childs[i].setTranslationX(dx);
                         }
                     }
                 }
+                event.setAction(MotionEvent.ACTION_CANCEL);
                 break;
             case MotionEvent.ACTION_UP:
 
                 float upx=event.getX();
                 dx=upx-downX;
-                if(Math.abs(dx)>width/4){
+                if(Math.abs(dx)>width/4&& adapter !=null&& adapter.getCount()>1){
                     int w=getWidth();
-                    if(dx>0&&curentPosition>0){
+                    if(dx>0){
                         isAniamtion=true;
                         --curentPosition;
+                        if(curentPosition<0){
+                            curentPosition= adapter.getCount()-1;
+                        }
                         animationScroll(w);
                     }
-                    if(dx<0&&curentPosition<mLoadNext.getCount()-1){
+                    if(dx<0){
                         isAniamtion=true;
                         ++curentPosition;
+                        if(curentPosition>= adapter.getCount()){
+                            curentPosition=0;
+                        }
                         animationScroll(-w);
                     }
                 }
@@ -299,13 +319,18 @@ public class ImageSwitch extends FrameLayout {
                 isAniamtion=false;
                 if(w>0) {
                     reLayoutLeft();
+                    int pn=curentPosition-1;
+                    pn=pn<0? adapter.getCount()-1:pn;
+                    //load pre item data
+                    adapter.bindData(childs[0],pn);
                 }
                 else if(w<0){
                     reLayoutRight();
                     int np=curentPosition+1;
-                    mLoadNext.bindData(childs[2],np%mLoadNext.getCount());
+                    //load next item data
+                    adapter.bindData(childs[2],np% adapter.getCount());
                 }
-
+                adapter.onItemChanged(curentPosition);
             }
 
             @Override
@@ -357,5 +382,6 @@ public class ImageSwitch extends FrameLayout {
         * return the count for the child;
         * */
         int getCount();
+        void onItemChanged(int currentItem);
     }
 }
