@@ -92,15 +92,7 @@ public class ImageSwitch extends FrameLayout {
         mHandler =new Handler(this);
         if(adapter !=null&& adapter.getCount()>0){
 
-            View child= adapter.createItem();
-            childs[0]=child;
-            addView(child);
-            child= adapter.createItem();
-            childs[1]=child;
-            addView(child);
-            child= adapter.createItem();
-            childs[2]=child;
-            addView(child);
+
             adapter.bindData(childs[1],curentPosition);
             //pre load the next item
             if(adapter.getCount()>1){
@@ -126,8 +118,17 @@ public class ImageSwitch extends FrameLayout {
             mTimer=null;
         }
     }
-    public void setLoadNext(Adapter loadNext){
+    public void setAdapter(Adapter loadNext){
         this.adapter =loadNext;
+        View child= adapter.createItem();
+        childs[0]=child;
+        addView(child);
+        child= adapter.createItem();
+        childs[1]=child;
+        addView(child);
+        child= adapter.createItem();
+        childs[2]=child;
+        addView(child);
     }
     // set the duration for exchange animation
     public void setAnimationDuration(int duration){
@@ -225,10 +226,24 @@ public class ImageSwitch extends FrameLayout {
 
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
-        handleMotionEvent(ev);
-        return super.dispatchTouchEvent(ev);
+        boolean r0=handleMotionEvent(ev);
+        boolean r1=super.dispatchTouchEvent(ev);
+        return r0||r1;
     }
-
+    /*
+    * notification the data set had changed
+    * */
+    public void notificationDataSetChanged(){
+        if(adapter!=null){
+            int np=curentPosition-1;
+            np=np<0?adapter.getCount()-1:np;
+            adapter.bindData(childs[0],np);
+            adapter.bindData(childs[1],curentPosition);
+            np=curentPosition+1;
+            np=np>=adapter.getCount()?0:np;
+            adapter.bindData(childs[2],np);
+        }
+    }
     /*
         * override the onToucheEvent method to move the child ,when you swipe in this view
         * */
@@ -256,16 +271,18 @@ public class ImageSwitch extends FrameLayout {
                         dealResult=true;
                         for(int i=0;i<3;++i){
                             childs[i].setTranslationX(dx);
+                            event.setAction(MotionEvent.ACTION_CANCEL);
                         }
                     }
                     if(dx<0){
                         dealResult=true;
                         for(int i=0;i<3;++i){
                             childs[i].setTranslationX(dx);
+                            event.setAction(MotionEvent.ACTION_CANCEL);
                         }
                     }
                 }
-                event.setAction(MotionEvent.ACTION_CANCEL);
+
                 break;
             case MotionEvent.ACTION_UP:
 
