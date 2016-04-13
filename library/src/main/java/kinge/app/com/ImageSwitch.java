@@ -9,6 +9,7 @@ import android.os.Build;
 import android.os.Message;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
+import android.view.VelocityTracker;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
@@ -34,8 +35,10 @@ public class ImageSwitch extends FrameLayout {
     private int curentPosition;
     float x,y;
     float downX,downY;
-    private boolean isAniamtion;
+    private boolean isAnimation;
     private boolean isTouching;
+    private float mVx;
+    private VelocityTracker mVelocityTracker;
     public ImageSwitch(Context context) {
         super(context);
         init();
@@ -135,10 +138,10 @@ public class ImageSwitch extends FrameLayout {
         this.animationDuration=duration;
     }
     private void changeToNext(){
-        if(isAniamtion||isTouching){
+        if(isAnimation ||isTouching){
             return;
         }
-        isAniamtion=true;
+        isAnimation =true;
 //        System.out.println("################  before #######################");
         int translation0=childs[1].getRight();
         int translation1=childs[2].getLeft()-childs[1].getLeft();
@@ -172,7 +175,7 @@ public class ImageSwitch extends FrameLayout {
 //                np=curentPosition-1;
 //                np=np<0? adapter.getCount()-1:np;
 //                adapter.bindData(childs[0],np);
-                isAniamtion=false;
+                isAnimation =false;
             }
 
             @Override
@@ -248,11 +251,13 @@ public class ImageSwitch extends FrameLayout {
         * override the onToucheEvent method to move the child ,when you swipe in this view
         * */
     public boolean handleMotionEvent(MotionEvent event) {
-        if(isAniamtion){
+        if(isAnimation){
             return true;
         }
+
 //        return super.onTouchEvent(event);
         boolean dealResult=false;
+        int w=getWidth();
         switch (event.getAction()){
             case MotionEvent.ACTION_DOWN:
                 downY=event.getY();
@@ -261,11 +266,24 @@ public class ImageSwitch extends FrameLayout {
                 y=downY;
                 dealResult=true;
                 isTouching=true;
+                mVx=0;
+                   /*
+                    * use VeloctyTracker to compute the v fo event;
+                    * */
+                if(mVelocityTracker==null){
+                    mVelocityTracker=VelocityTracker.obtain();
+                }
+                else{
+                    mVelocityTracker.clear();
+                }
                 break;
             case MotionEvent.ACTION_MOVE:
                 isTouching=true;
                 float dx=event.getX()-x;
                 float dy=event.getY()-y;
+                mVelocityTracker.addMovement(event);
+                mVelocityTracker.computeCurrentVelocity(1000);
+                mVx=mVelocityTracker.getXVelocity();
                 if(Math.abs(dx)>Math.abs(dy)&& adapter !=null&& adapter.getCount()>1){
                     if(dx>0){
                         dealResult=true;
@@ -285,36 +303,43 @@ public class ImageSwitch extends FrameLayout {
 
                 break;
             case MotionEvent.ACTION_UP:
-
                 float upx=event.getX();
                 dx=upx-downX;
-                if(Math.abs(dx)>width/4&& adapter !=null&& adapter.getCount()>1){
-                    int w=getWidth();
+                if((Math.abs(mVx)>1000||Math.abs(dx)>width/4)&& adapter !=null&& adapter.getCount()>1){
+
                     if(dx>0){
-                        isAniamtion=true;
-                        --curentPosition;
-                        if(curentPosition<0){
-                            curentPosition= adapter.getCount()-1;
-                        }
-                        animationScroll(w);
+                        move2Left(w);
                     }
                     if(dx<0){
-                        isAniamtion=true;
-                        ++curentPosition;
-                        if(curentPosition>= adapter.getCount()){
-                            curentPosition=0;
-                        }
-                        animationScroll(-w);
+                        move2Right(w);
                     }
                 }
                 else{
-                    isAniamtion=true;
+                    isAnimation =true;
                     animationScroll(0);
                 }
                 isTouching=false;
                 break;
         }
+
+//        event.recycle();
         return dealResult;
+    }
+    private void move2Right(int w){
+        isAnimation =true;
+        ++curentPosition;
+        if(curentPosition>= adapter.getCount()){
+            curentPosition=0;
+        }
+        animationScroll(-w);
+    }
+    private void move2Left(int w){
+        isAnimation =true;
+        --curentPosition;
+        if(curentPosition<0){
+            curentPosition= adapter.getCount()-1;
+        }
+        animationScroll(w);
     }
     /*
     * use the ObjectAnimator to Scroll the child to right position
@@ -333,7 +358,7 @@ public class ImageSwitch extends FrameLayout {
 
             @Override
             public void onAnimationEnd(Animator animation) {
-                isAniamtion=false;
+                isAnimation =false;
                 if(w>0) {
                     reLayoutLeft();
                     int pn=curentPosition-1;
